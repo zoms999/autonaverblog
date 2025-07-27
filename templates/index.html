@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>네이버 자동 포스팅 데이터 입력</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif; margin: 40px; background-color: #f8f9fa; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1, h3 { color: #333; }
+        h1 { text-align: center; color: #03C75A; }
+        h3 { border-bottom: 1px solid #eee; padding-bottom: 8px; margin-top: 25px; }
+        input[type="text"], input[type="password"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; margin-bottom: 10px; font-size: 16px; }
+        button { width: 100%; padding: 12px; background-color: #03C75A; color: white; border: none; border-radius: 4px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px; }
+        button:hover { background-color: #02b350; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>네이버 AI 포스팅</h1>
+        <form action="/save_data" method="POST">
+            <h3>네이버 계정</h3>
+            <input type="text" name="naver_id" placeholder="네이버 아이디" required>
+            <input type="password" name="naver_pw" placeholder="네이버 비밀번호" required>
+            
+            <h3>생성할 포스트 정보</h3>
+            <label for="title">최종 포스트 제목</label>
+            <input type="text" id="title" name="title" placeholder="예: 2025년 최고의 앱테크 총정리" required>
+            <label for="referral_id">추천인 ID (선택 사항)</label>
+            <input type="text" id="referral_id" name="referral_id" placeholder="예: myReferralCode123">
+
+            <h3>참고할 샘플 URL (최소 1개)</h3>
+            <input type="text" name="url1" placeholder="https://..." required>
+            <input type="text" name="url2" placeholder="https://...">
+            <input type="text" name="url3" placeholder="https://...">
+            <input type="text" name="url4" placeholder="https://...">
+
+            <button type="submit">데이터 저장하고 자동화 준비</button>
+        </form>
+    </div>
+</body>
+</html> 

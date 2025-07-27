@@ -1,0 +1,17 @@
+# Environments
+.env
+
+# Excel files
+*.xlsx
+
+# Image files
+*.png
+
+# Data files
+data.json
+
+# Python cache
+__pycache__/
+
+# VSCode settings
+.vscode/
