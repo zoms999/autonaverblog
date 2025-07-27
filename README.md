@@ -1,56 +1,89 @@
-# 네이버 로그인 자동화
+# Naver Blog Automation
 
-셀레니움을 이용한 네이버 로그인 및 블로그 이동 자동화 프로그램입니다.
+This project automates the process of creating and publishing blog posts on Naver using Python and Selenium. It leverages a web interface built with Flask to manage the automation tasks.
 
-## 기능
+## Features
 
-- 봇 탐지 우회를 위한 클립보드 기반 로그인
-- 네이버 로그인 자동화
-- 블로그 작성 페이지 자동 이동
-- 블로그 글 자동 작성 (제목, 내용 입력 및 저장)
+- **Automated Login**: Securely logs into Naver using provided credentials.
+- **Content Generation**: Generates blog post content using the Gemini API.
+- **Automated Posting**: Publishes the generated content to a Naver blog.
+- **Web Interface**: Provides a user-friendly interface to start and monitor the automation process.
 
-## 설치 방법
+## Project Structure
 
-1. 필요한 패키지 설치:
-```bash
-pip install -r requirements.txt
-```
+- `app.py`: The main Flask application that serves the web interface and handles automation requests.
+- `automation_runner.py`: Contains the core automation logic, including web scraping and browser interaction using Selenium.
+- `templates/`: Contains the HTML templates for the web interface.
+  - `index.html`: The main page with a form to start the automation.
+  - `result.html`: Displays the progress and logs of the automation process.
+- `static/`: Contains static files like CSS and JavaScript.
+- `requirements.txt`: A list of Python dependencies required for the project.
 
-2. Chrome 브라우저가 설치되어 있어야 합니다.
+## Setup and Usage
 
-3. ChromeDriver는 자동으로 관리됩니다 (selenium 4.x 사용).
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/your-username/naver-blog-automation.git
+   cd naver-blog-automation
+   ```
 
-## 사용 방법
+2. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-1. 프로그램 실행:
-```bash
-python naver_login.py
-```
+3. **Create a `.env` file**:
+   Create a `.env` file in the root directory and add your Naver credentials:
+   ```
+   NAVER_ID="your_naver_id"
+   NAVER_PASSWORD="your_naver_password"
+   ```
 
-2. 프로그램이 자동으로:
-   - 네이버 로그인 페이지에 접속
-   - 아이디와 비밀번호를 클립보드를 통해 입력
-   - 로그인 버튼 클릭
-   - 2초 대기 후 블로그 작성 페이지로 이동
-   - iframe으로 전환하여 블로그 에디터 접근
-   - 팝업 및 도움말 패널 자동 닫기
-   - 제목과 내용을 클립보드를 통해 입력
-   - 저장 버튼 클릭
+4. **Run the application**:
+   ```bash
+   python app.py
+   ```
 
-## 주요 특징
+5. **Access the web interface**:
+   Open your web browser and go to `http://127.0.0.1:5001`.
 
-- **봇 탐지 방지**: `send_keys()` 대신 클립보드 복사/붙여넣기 사용
-- **사용자 에이전트 위장**: 일반 브라우저로 인식되도록 설정
-- **자동화 속성 숨김**: 웹드라이버 자동화 탐지를 우회
+6. **Start the automation**:
+   - Fill in the required information in the form (e.g., keywords for content generation).
+   - Click the "Start Automation" button.
 
-## 보안 주의사항
+7. **Monitor the progress**:
+   You will be redirected to a page where you can see the logs of the automation process in real-time.
 
-- 계정 정보는 안전하게 관리하세요
-- 네이버의 이용약관을 준수하여 사용하세요
-- 과도한 자동화는 계정 제재를 받을 수 있습니다
+## How it Works
 
-## 문제 해결
+1. **Web Interface (`app.py`)**:
+   - A Flask web server provides a user interface to start the automation.
+   - It uses `glob` to find available automation scripts.
+   - It uses `subprocess` to run the automation script in the background.
+   - It provides an endpoint (`/status`) to check the status of the automation process.
 
-- Chrome 브라우저 버전과 ChromeDriver 호환성 확인
-- 네트워크 상태 확인
-- 2단계 인증이 설정된 경우 별도 처리 필요 
+2. **Automation Runner (`automation_runner.py`)**:
+   - This script is executed by the Flask application.
+   - It uses `glob` to find the latest version of the automation script.
+   - It uses `subprocess` to run the automation script.
+
+3. **Web Scraper (`scrapers/`)**:
+   - This directory contains the web scraping logic.
+   - It uses Selenium to automate browser interactions.
+   - It logs into Naver, navigates to the blog editor, and publishes the content.
+
+## Key Libraries
+
+- **Flask**: For the web interface.
+- **Selenium**: For browser automation and web scraping.
+- **glob**: For finding files.
+- **subprocess**: For running external commands.
+- **dotenv**: For managing environment variables.
+
+## Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request.
+
+## License
+
+This project is licensed under the MIT License.
