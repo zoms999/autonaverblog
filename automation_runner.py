@@ -105,9 +105,6 @@ class NaverAutoPoster:
             print(f"❌ 로그인 실패: {e}")
             return False
 
-    # ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-    # ★★★★★★★★★ post 메소드 수정: 이미지 첨부 기능 추가 ★★★★★★★★★
-    # ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
     def post(self, title, content, image_paths=None):
         try:
             print("블로그 작성 페이지로 이동 중...")
@@ -155,46 +152,120 @@ class NaverAutoPoster:
             time.sleep(3)
             print("✅ 내용 입력 성공.")
 
-            # === 이미지 첨부 로직 ===
+            # === 이미지 첨부 로직 (안정성 강화 버전) ===
             if image_paths:
                 print("이미지 첨부 시작...")
-                # 본문 맨 아래로 커서를 이동시키기 위해 Enter 키를 몇 번 누릅니다.
-                ActionChains(self.driver).send_keys(Keys.ENTER).send_keys(Keys.ENTER).perform()
+                content_body = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".se-main-container")))
+                content_body.click()
+                ActionChains(self.driver).send_keys(Keys.END).perform()
+                time.sleep(0.5)
+                ActionChains(self.driver).send_keys(Keys.ENTER).perform()
                 time.sleep(1)
-
-                # 파일 첨부 input 요소를 찾습니다. 이 요소는 숨겨져 있을 수 있습니다.
-                # 네이버 에디터는 보통 이 input에 파일을 보내면 이미지 첨부 UI가 트리거됩니다.
-                file_input = self.driver.find_element(By.CSS_SELECTOR, "input[type='file']")
 
                 for image_path in image_paths:
                     try:
+                        file_input = self.driver.find_element(By.CSS_SELECTOR, "input[type='file']")
+                        
+                        initial_image_count = len(self.driver.find_elements(By.CSS_SELECTOR, ".se-component-image img, .se-image-resource img"))
                         abs_path = os.path.abspath(image_path)
-                        print(f"   - 첨부 시도: {abs_path}")
+                        print(f"   - 첨부 시도: {os.path.basename(image_path)}")
                         file_input.send_keys(abs_path)
-                        # 이미지 업로드 및 에디터 처리를 위한 대기 시간 (매우 중요)
-                        time.sleep(5) 
-                        print(f"   - ✅ 첨부 완료: {os.path.basename(image_path)}")
+                        
+                        WebDriverWait(self.driver, 15).until(
+                            lambda driver: len(driver.find_elements(By.CSS_SELECTOR, ".se-component-image img, .se-image-resource img")) > initial_image_count
+                        )
+                        
+                        print(f"   - ✅ 첨부 확인: {os.path.basename(image_path)}")
+                        time.sleep(2)
+
                     except Exception as e:
                         print(f"   - ❌ 이미지 첨부 실패: {os.path.basename(image_path)}, 오류: {e}")
                 
                 print("✅ 모든 이미지 첨부 완료.")
 
-
             # iframe에서 빠져나오기
             self.driver.switch_to.default_content()
-            time.sleep(1)
-            
-            # 발행(게시) 버튼 클릭
-            print("발행 버튼 클릭 중...")
-            publish_button = self.wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[class*='publish']")))
-            publish_button.click()
             time.sleep(2)
             
-            # 최종 발행 확인 버튼 클릭
+            # 발행(게시) 버튼 클릭 - 여러 선택자 시도
+            print("발행 버튼 클릭 중...")
+            publish_button_selectors = [
+                "button.publish_btn__m9KHH",  # 제공해주신 HTML의 정확한 클래스
+                "button[class*='publish_btn']",
+                "button[class*='publish']",
+                "button:contains('발행')",
+                ".publish_btn__m9KHH",
+                "button .text__d09H7"  # '발행' 텍스트가 있는 버튼
+            ]
+            
+            publish_button = None
+            for selector in publish_button_selectors:
+                try:
+                    if selector == "button:contains('발행')":
+                        # XPath로 텍스트 기반 검색
+                        publish_button = self.wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), '발행')]")))
+                    else:
+                        publish_button = self.wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, selector)))
+                    print(f"   - 발행 버튼 찾음: {selector}")
+                    break
+                except Exception as e:
+                    print(f"   - 선택자 실패: {selector}")
+                    continue
+            
+            if not publish_button:
+                print("❌ 발행 버튼을 찾을 수 없습니다. 수동으로 확인이 필요합니다.")
+                time.sleep(10)  # 수동 확인을 위한 대기
+                return False
+            
+            # JavaScript로 클릭 시도 (일반 클릭이 안 될 경우를 대비)
+            try:
+                publish_button.click()
+                print("   - ✅ 일반 클릭 성공")
+            except Exception as e:
+                print(f"   - 일반 클릭 실패, JavaScript 클릭 시도: {e}")
+                self.driver.execute_script("arguments[0].click();", publish_button)
+                print("   - ✅ JavaScript 클릭 성공")
+            
+            time.sleep(3)
+            
+            # 최종 발행 확인 버튼 클릭 - 여러 선택자 시도
             print("최종 발행 확인 버튼 클릭 중...")
-            publish_panel = self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div[class*='layer_popup']")))
-            final_publish_button = publish_panel.find_element(By.CSS_SELECTOR, "button[class*='btn_apply']")
-            final_publish_button.click()
+            final_publish_selectors = [
+                "button[class*='btn_apply']",
+                "button[class*='confirm']",
+                "button[class*='ok']",
+                ".layer_popup button[class*='apply']",
+                ".popup button[class*='confirm']",
+                "//button[contains(text(), '발행')]",
+                "//button[contains(text(), '확인')]",
+                "//button[contains(text(), '게시')]"
+            ]
+            
+            final_publish_button = None
+            for selector in final_publish_selectors:
+                try:
+                    if selector.startswith("//"):
+                        # XPath 선택자
+                        final_publish_button = self.wait.until(EC.element_to_be_clickable((By.XPATH, selector)))
+                    else:
+                        # CSS 선택자
+                        final_publish_button = self.wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, selector)))
+                    print(f"   - 최종 발행 버튼 찾음: {selector}")
+                    break
+                except Exception as e:
+                    print(f"   - 최종 발행 선택자 실패: {selector}")
+                    continue
+            
+            if final_publish_button:
+                try:
+                    final_publish_button.click()
+                    print("   - ✅ 최종 발행 버튼 클릭 성공")
+                except Exception as e:
+                    print(f"   - 최종 발행 일반 클릭 실패, JavaScript 클릭 시도: {e}")
+                    self.driver.execute_script("arguments[0].click();", final_publish_button)
+                    print("   - ✅ 최종 발행 JavaScript 클릭 성공")
+            else:
+                print("⚠️ 최종 발행 확인 버튼을 찾을 수 없습니다. 첫 번째 발행 버튼만으로 완료될 수 있습니다.")
             
             WebDriverWait(self.driver, 30).until(EC.url_contains("PostView.naver"))
             print(f"✅ 포스팅 최종 완료: {title}")
@@ -224,9 +295,6 @@ def crawl_url_content(url):
         print(f"   - URL 텍스트 크롤링 실패: {url}, 오류: {e}")
         return ""
 
-# ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-# ★★★★★★★★★ 신규 함수: 구글 플레이 스토어 이미지 다운로드 ★★★★★★★★★
-# ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 def download_play_store_images(url, save_dir='images'):
     print(f"   - Google Play Store URL 발견: 이미지 다운로드 시도...")
     downloaded_paths = []
@@ -263,14 +331,16 @@ def download_play_store_images(url, save_dir='images'):
     
     return downloaded_paths
 
-
+# ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+# ★★★★★★★★★ 프롬프트 수정: 본문 서식 및 가독성 강화 ★★★★★★★★★
+# ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 def create_advanced_prompt(title, referral_id, crawled_contents):
     enhanced_title = title
     if referral_id and referral_id != '없음':
         enhanced_title = f"{title} (추천인 코드: {referral_id})"
     
     prompt = f"""
-    당신은 저작권법을 철저히 준수하는 전문 블로그 작가입니다. 다음 정보를 바탕으로 독자에게 유용하고 흥미로운 **'완전히 새로운'** 블로그 포스트를 작성해주세요.
+    당신은 저작권법을 철저히 준수하는 전문 블로그 작가입니다. 다음 정보를 바탕으로, 독자의 눈길을 사로잡고 글에 몰입하게 만드는 **'완전히 새로운'** 블로그 포스트를 작성해주세요.
 
     ### 최종 포스트의 주제
     "{enhanced_title}"
@@ -286,13 +356,14 @@ def create_advanced_prompt(title, referral_id, crawled_contents):
     1.  **독창성 및 저작권 준수:** '참고 자료'는 아이디어와 정보 수집용으로만 사용하세요. **내용을 절대로 그대로 복사하거나 짜깁기하면 안 됩니다.** 참고 자료의 문장, 문단 구조를 모방하지 말고, 완전히 새로운 표현과 문장으로 독창적인 글을 창작해야 합니다. **이는 저작권 위반을 방지하기 위한 가장 중요한 규칙입니다.**
     2.  **구조:** 글의 구조는 서론, 본론(2~3개의 소주제), 결론으로 명확하게 구성해주세요.
     3.  **어조:** 독자들이 이해하기 쉽고 친근한 어조로 작성해주세요.
-    4.  **추천인 ID:** 글의 마지막에는 자연스럽게 아래 '추천인 ID'를 언급하며 가입이나 사용을 유도하는 문장을 추가해주세요. (만약 ID가 '없음'이 아니라면)
+    4.  **추천인 ID:** 글의 마지막에는 자연스럽게 아래 '추천인 ID'를 언급하며 가입이나 사용을 유도하는 문장을 추가해주세요. (만약 ID가 '없음'이 아니라면) **언급 시에는 반드시 `**`를 사용해 굵게 표시해주세요.** (예: 추천인 코드는 **{referral_id if referral_id else 'ABCD123'}** 입니다.)
     5.  **서식:** 중요한 소제목들은 `##` 또는 `###` 마크다운 형식으로 작성해주세요.
+    6.  **가독성 및 강조:** 글의 핵심 키워드나 독자가 꼭 알아야 할 중요한 정보는 `**`를 사용해 **굵게** 처리해주세요. 장점이나 특징을 나열할 때는 `-` 또는 `*`를 사용해 목록으로 만들어 가독성을 높여주세요.
 
     ### 포함할 정보
     - 추천인 ID: "{referral_id if referral_id and referral_id != '없음' else '없음'}"
 
-    위 지침, 특히 **독창성과 저작권 준수 항목을 반드시 지켜서**, 완성된 형태의 블로그 포스트를 작성해주세요.
+    위 지침, 특히 **독창성과 가독성 향상을 위한 서식 적용 항목을 반드시 지켜서**, 완성된 형태의 블로그 포스트를 작성해주세요.
     """
     return prompt
 
@@ -313,7 +384,6 @@ def main():
         print(f"❌ 'data.json' 파일을 읽는 데 실패했습니다. 웹 UI에서 먼저 데이터를 저장해주세요. 오류: {e}")
         return
 
-    # ★★★ 이미지 저장 폴더 생성 ★★★
     image_dir = "images"
     if not os.path.exists(image_dir):
         os.makedirs(image_dir)
@@ -321,19 +391,17 @@ def main():
 
     print("🚀 1단계: 샘플 URL 내용 분석 및 이미지 다운로드 시작")
     crawled_contents = []
-    all_downloaded_images = [] # 다운로드된 모든 이미지 경로를 저장할 리스트
+    all_downloaded_images = [] 
     if not post_info.get('sample_urls'):
         print("   - 경고: 분석할 샘플 URL이 없습니다. 제목만으로 글을 생성합니다.")
     else:
         for url in post_info['sample_urls']:
             print(f"   - 처리 중: {url[:70]}...")
             
-            # ★★★ 구글 플레이 스토어 URL인 경우 이미지 다운로드 ★★★
             if "play.google.com/store/apps" in url:
                 image_paths = download_play_store_images(url, save_dir=image_dir)
                 all_downloaded_images.extend(image_paths)
             
-            # 모든 URL에 대해 텍스트 콘텐츠 크롤링은 동일하게 수행
             content = crawl_url_content(url)
             crawled_contents.append(content)
 
@@ -360,7 +428,6 @@ def main():
     try:
         if poster.login(NAVER_USERNAME, NAVER_PASSWORD):
             print("\n🚀 3단계: 네이버 블로그 자동 포스팅 시작")
-            # ★★★ post 메소드에 이미지 경로 리스트 전달 ★★★
             if not poster.post(final_post_title, final_content, image_paths=all_downloaded_images):
                 print("   - 포스팅에 실패하여 프로그램을 종료합니다.")
                 return
