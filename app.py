@@ -17,6 +17,8 @@ def save_data():
             request.form.get('url2'),
             request.form.get('url3'),
             request.form.get('url4'),
+            request.form.get('url5'),
+            request.form.get('url6'),
         ]
         sample_urls = [url for url in sample_urls if url]
         data = {

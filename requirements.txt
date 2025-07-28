@@ -4,3 +4,4 @@ pandas
 selenium
 pyperclip
 openpyxl 
+python-dotenv
